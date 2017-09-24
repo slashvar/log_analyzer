@@ -83,5 +83,5 @@ frequent queries are extracted using heap pop operation. Building the histogram
 and transforming it in a heap is linear in the number of queries in the range,
 then each pop take logarithmic time, thus, with `M` the number of elements in
 the range and `N` the requested number of most frequent queries, the complexity
-is in $O(M + N log M)$.
+is in `O(M + N log M)`.
 
