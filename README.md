@@ -52,7 +52,9 @@ simple session based on the challenge log file:
     chrome%3A%2F%2Fnewtab%2F	2535
     >
 
-The program display a little prompt `> ` when ready (after reading the log file which may take few seconds). The prompt is only displayed in interactive shell (unless `NO_POSIX_ISATTY` has been defined at compile time).
+The program display a little prompt `> ` when ready (after reading the log file
+    which may take few seconds). The prompt is only displayed in interactive
+shell (unless `NO_POSIX_ISATTY` has been defined at compile time).
 
 When using the standard input for the log, the `-e` flag is mandatory.
 
@@ -85,3 +87,17 @@ then each pop take logarithmic time, thus, with `M` the number of elements in
 the range and `N` the requested number of most frequent queries, the complexity
 is in `O(M + N log M)`.
 
+The tree structure has a fixed number of levels and thus a linear space
+complexity (in terms of date and queries).
+
+## Improvements ##
+
+Several points can be improved, here is a non-exaustive list with no specific
+order:
+
+* Parsing: log and command parsing is really basic and naive, error reporting is
+minimal.
+* Command line: an help flag is missing and command line parsing is too basic
+* Improved most frequent queries: complexity can be enhanced by using
+prefix-sums approach at the cost of more space complexity.
+* Comparing with other approaches to store dates.
