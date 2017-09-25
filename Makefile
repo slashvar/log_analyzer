@@ -13,7 +13,7 @@ CXXFLAGS = -Wall -Wextra -std=c++14 -O3
 LDFLAGS =
 LDLIBS =
 
-OBJ = log_analyzer.o
+OBJ = reader.o log_analyzer.o
 DEP = ${OBJ:.o=.d}
 
 all: log_analyzer
