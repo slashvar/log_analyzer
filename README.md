@@ -101,3 +101,17 @@ minimal.
 * Improved most frequent queries: complexity can be enhanced by using
 prefix-sums approach at the cost of more space complexity.
 * Comparing with other approaches to store dates.
+* Memory management: the time_tree structure heavily uses `shared_ptr` and
+`weak_ptr`, this approach has a (higly probable) performance penality on
+creation, destruction and range traversal. The traversal performance can
+probably be enhance by replacing `weak_ptr` with plain pointers (which safe
+since we never delete any nodes). A more complete solution implies to use
+plain pointers everywhere and allocate all nodes in a memory pool, this solution
+induces some changes in the whole code but will probably speed-up construction
+and destruction.
+* Flat model for time points: the density of time points is close to the
+maximum, almost all seconds in the full range are used, thus we can replace the
+tree structure with a simple array and use time-stamps (shifted by the minimum
+starting date) for indexing. This approach could increase performances for
+range traversals and structure destruction. This also offers a simpler way for
+serialization.
