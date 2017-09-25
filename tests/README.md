@@ -12,5 +12,5 @@ this directory.
 The commands can also be used *by hands*, by copy/pasting the queries on the
 command line (with the `-e` flag) or interactively.
 
-Most examples assume a time-range similar to the log provided by the challenge
+Some examples assume a time-range similar to the log provided by the challenge
 (not included in this repos).
