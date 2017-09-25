@@ -23,6 +23,7 @@ struct date {
       value = value * 100 + x;
     }
   }
+  date() : value(0) {}
   std::uint64_t value;
   std::array<unsigned, 6> split;
 };
