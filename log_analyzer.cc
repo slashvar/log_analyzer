@@ -75,6 +75,27 @@ void count(time_tree<std::string>& tree, date begin, date end)
  */
 
 static
+bool parse_range(const char *line, date& start, date& stop, int& pos)
+{
+  std::array<unsigned, 6> dbegin, dend;
+  int oldpos = pos;
+  if (!read_date(line + pos, dbegin, pos)) {
+    return false;
+  }
+  pos += oldpos;
+  oldpos = pos;
+  if (!read_date(line + pos, dend, pos)) {
+    return false;
+  }
+  pos += oldpos;
+  start = date(dbegin);
+  stop = date(dend);
+  return start.value <= stop.value;
+}
+/*
+ * TODO: check for content after last expected token
+ */
+static
 bool parse_query(time_tree<std::string>& tree, const char *line)
 {
   int n, pos;
@@ -82,35 +103,20 @@ bool parse_query(time_tree<std::string>& tree, const char *line)
   n = std::sscanf(line, "%5s%n", kwd, &pos);
   if (n < 1)
     return false;
+  date dbegin, dend;
+  if (!parse_range(line, dbegin, dend, pos))
+    return false;
   if (std::string("count") == kwd) {
-    std::array<unsigned, 6> dbegin, dend;
-    int oldpos = pos;
-    if (!read_date(line + pos, dbegin, pos)) {
-      return false;
-    }
-    pos += oldpos;
-    if (!read_date(line + pos, dend, pos)) {
-      return false;
-    }
-    count(tree, date(dbegin), date(dend));
+    count(tree, dbegin, dend);
     return true;
   }
   if (std::string("top") == kwd) {
-    std::array<unsigned, 6> dbegin, dend;
-    int oldpos = pos;
-    if (!read_date(line + pos, dbegin, pos))
-      return false;
-    pos += oldpos;
-    oldpos = pos;
-    if (!read_date(line + pos, dend, pos))
-      return false;
-    pos += oldpos;
     size_t nth;
     char *stop;
     nth = std::strtoul(line + pos, &stop, 10);
     if (line + pos == stop || nth == 0)
       return false;
-    top_freq(tree, date(dbegin), date(dend), nth);
+    top_freq(tree, dbegin, dend, nth);
     return true;
   }
   return false;
