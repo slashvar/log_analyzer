@@ -116,10 +116,10 @@ struct time_tree {
     return count;
   }
 
-  std::unordered_map<std::string, size_t> compute_freq(const date& start, const date& end_) {
+  std::unordered_map<CONTENT, size_t> compute_freq(const date& start, const date& end_) {
     auto begin = upper_bound(start);
     auto end = upper_bound(end_);
-    std::unordered_map<std::string, size_t> hist;
+    std::unordered_map<CONTENT, size_t> hist;
     for (auto cur = begin; cur && cur != end; cur = cur->next.lock()) {
       for (auto q : cur->store)
         hist[q] += 1;
