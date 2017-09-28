@@ -16,6 +16,37 @@
 #include <unordered_map>
 #include <vector>
 
+#define POOL_SIZE 1024
+
+template <typename CONTENT>
+struct mem_pool {
+  mem_pool() : cur_size(0) {
+    CONTENT* ptr = new CONTENT[POOL_SIZE];
+    pools.push_back(ptr);
+  }
+
+  mem_pool(mem_pool& p) = delete;
+
+  ~mem_pool() {
+    for (CONTENT* ptr : pools)
+      delete[] ptr;
+  }
+
+  CONTENT* alloc() {
+    if (cur_size == POOL_SIZE) {
+      CONTENT* ptr = new CONTENT[POOL_SIZE];
+      pools.push_back(ptr);
+      cur_size = 0;
+    }
+    CONTENT* ptr = pools.back() + cur_size;
+    cur_size++;
+    return ptr;
+  }
+
+  std::vector<CONTENT*> pools;
+  size_t cur_size;
+};
+
 struct date {
   date(const std::array<unsigned, 6>& s) : split(s) {
     value = 0;
@@ -37,41 +68,43 @@ struct time_tree {
       return std::distance(begin(keys), target);
     }
     std::vector<date> keys;
-    std::vector<std::shared_ptr<node>> children;
+    std::vector<node*> children;
     node *next, *prev;
     std::vector<CONTENT> store;
   };
 
-  time_tree() : root(std::make_shared<node>()) {
+  time_tree() {
+    pool = std::make_shared<mem_pool<node>>();
+    root = pool->alloc();
     date ld {{{0, 0, 0, 0, 0, 0}}};
     date rd {{{9999, 12, 31, 23, 59, 59}}};
     auto cur = root;
     for (int i = 0; i < 5; i++) {
       cur->keys.push_back(ld);
-      cur->children.push_back(std::make_shared<node>());
+      cur->children.push_back(pool->alloc());
       cur = cur->children.back();
     }
     cur->keys.push_back(ld);
-    left_sentinel = &*cur;
+    left_sentinel = cur;
     cur = root;
     for (int i = 0; i < 5; i++) {
       cur->keys.push_back(rd);
-      cur->children.push_back(std::make_shared<node>());
+      cur->children.push_back(pool->alloc());
       cur = cur->children.back();
     }
     cur->keys.push_back(rd);
-    right_sentinel = &*cur;
-    left_sentinel->next = &*cur;
+    right_sentinel = cur;
+    left_sentinel->next = cur;
     cur->prev = left_sentinel;
   }
 
-  std::shared_ptr<node> _upper(const date& target, std::shared_ptr<node> cur) {
+  node* _upper(const date& target, node* cur) {
     for (; cur->children.size() > 0; cur = cur->children[std::min(cur->rank(target), cur->children.size() - 1)])
       continue;
     return cur;
   }
 
-  std::shared_ptr<node> upper_bound(const date& target)
+  node* upper_bound(const date& target)
   {
     auto cur = _upper(target, root);
     return cur;
@@ -84,21 +117,21 @@ struct time_tree {
       if (rk > 0 && rk >= cur->keys.size() && cur->keys[rk-1].split[i] == d.split[i])
         rk -= 1;
       if (rk >= cur->keys.size() || cur->keys[rk].split[i] != d.split[i]) {
-        auto prev = &*_upper(d, cur);
+        auto prev = _upper(d, cur);
         if (prev->prev)
           prev = prev->prev;
         for (unsigned j = i; j < 6; j++) {
           cur->keys.insert(begin(cur->keys) + rk, d);
-          cur = *cur->children.insert(begin(cur->children) + rk, std::make_shared<node>());
+          cur = *cur->children.insert(begin(cur->children) + rk, pool->alloc());
           rk = 0;
         }
         cur->keys.push_back(d);
         cur->store.push_back(x);
         cur->prev = prev;
         cur->next = prev->next;
-        prev->next = &*cur;
+        prev->next = cur;
         if (cur->next)
-          cur->next->prev = &*cur;
+          cur->next->prev = cur;
         return;
       }
       cur = cur->children[std::min(rk, cur->children.size() - 1)];
@@ -107,7 +140,7 @@ struct time_tree {
   }
 
   size_t count(const date& start, const date& end_) {
-    auto begin = &*upper_bound(start);
+    auto begin = upper_bound(start);
     auto end = &*upper_bound(end_);
     size_t count = 0;
     for (auto cur = begin; cur && cur != end; cur = cur->next) {
@@ -127,8 +160,9 @@ struct time_tree {
     return hist;
   }
 
-  std::shared_ptr<node> root;
+  node* root;
   node *left_sentinel, *right_sentinel;
+  std::shared_ptr<mem_pool<node>> pool;
 
 };
 
