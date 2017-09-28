@@ -111,6 +111,8 @@ bool parse_range(const char *line, date& start, date& stop, int& pos)
 static
 bool parse_query(time_tree<std::string>& tree, const char *line)
 {
+  if (!line[0])
+    return true;
   int n, pos;
   char kwd[6];
   n = std::sscanf(line, "%5s%n", kwd, &pos);
