@@ -38,7 +38,7 @@ struct time_tree {
     }
     std::vector<date> keys;
     std::vector<std::shared_ptr<node>> children;
-    std::weak_ptr<node> next, prev;
+    node *next, *prev;
     std::vector<CONTENT> store;
   };
 
@@ -52,7 +52,7 @@ struct time_tree {
       cur = cur->children.back();
     }
     cur->keys.push_back(ld);
-    left_sentinel = cur;
+    left_sentinel = &*cur;
     cur = root;
     for (int i = 0; i < 5; i++) {
       cur->keys.push_back(rd);
@@ -60,9 +60,9 @@ struct time_tree {
       cur = cur->children.back();
     }
     cur->keys.push_back(rd);
-    right_sentinel = cur;
-    left_sentinel.lock()->next = cur;
-    cur->prev = left_sentinel.lock();
+    right_sentinel = &*cur;
+    left_sentinel->next = &*cur;
+    cur->prev = left_sentinel;
   }
 
   std::shared_ptr<node> _upper(const date& target, std::shared_ptr<node> cur) {
@@ -84,9 +84,9 @@ struct time_tree {
       if (rk > 0 && rk >= cur->keys.size() && cur->keys[rk-1].split[i] == d.split[i])
         rk -= 1;
       if (rk >= cur->keys.size() || cur->keys[rk].split[i] != d.split[i]) {
-        auto prev = _upper(d, cur);
-        if (prev->prev.lock())
-          prev = prev->prev.lock();
+        auto prev = &*_upper(d, cur);
+        if (prev->prev)
+          prev = prev->prev;
         for (unsigned j = i; j < 6; j++) {
           cur->keys.insert(begin(cur->keys) + rk, d);
           cur = *cur->children.insert(begin(cur->children) + rk, std::make_shared<node>());
@@ -95,10 +95,10 @@ struct time_tree {
         cur->keys.push_back(d);
         cur->store.push_back(x);
         cur->prev = prev;
-        cur->next = prev->next.lock();
-        prev->next = cur;
-        if (cur->next.lock())
-          cur->next.lock()->prev = cur;
+        cur->next = prev->next;
+        prev->next = &*cur;
+        if (cur->next)
+          cur->next->prev = &*cur;
         return;
       }
       cur = cur->children[std::min(rk, cur->children.size() - 1)];
@@ -107,20 +107,20 @@ struct time_tree {
   }
 
   size_t count(const date& start, const date& end_) {
-    auto begin = upper_bound(start);
-    auto end = upper_bound(end_);
+    auto begin = &*upper_bound(start);
+    auto end = &*upper_bound(end_);
     size_t count = 0;
-    for (auto cur = begin; cur && cur != end; cur = cur->next.lock()) {
+    for (auto cur = begin; cur && cur != end; cur = cur->next) {
       count += cur->store.size();
     }
     return count;
   }
 
   std::unordered_map<CONTENT, size_t> compute_freq(const date& start, const date& end_) {
-    auto begin = upper_bound(start);
-    auto end = upper_bound(end_);
+    auto begin = &*upper_bound(start);
+    auto end = &*upper_bound(end_);
     std::unordered_map<CONTENT, size_t> hist;
-    for (auto cur = begin; cur && cur != end; cur = cur->next.lock()) {
+    for (auto cur = begin; cur && cur != end; cur = cur->next) {
       for (auto q : cur->store)
         hist[q] += 1;
     }
@@ -128,7 +128,7 @@ struct time_tree {
   }
 
   std::shared_ptr<node> root;
-  std::weak_ptr<node> left_sentinel, right_sentinel;
+  node *left_sentinel, *right_sentinel;
 
 };
 
