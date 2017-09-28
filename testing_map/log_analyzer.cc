@@ -22,6 +22,7 @@
 
 #include "reader.hh"
 #include "time_map.hh"
+#include "timer.hh"
 
 /*
  * query operations helper functions
@@ -35,25 +36,37 @@ void top_freq(time_tree<std::string>& tree, date start, date stop, size_t n)
 		      return p1.second < p2.second;
 		    };
 
-  auto hist = tree.compute_freq(start, stop);
-
-  std::vector<hdata> data;
-  for (auto p : hist)
-    data.push_back(p);
-  std::make_heap(begin(data), end(data), cmp);
-
-  for (size_t i = 0; i < std::min(n, data.size()); i++) {
-    std::pop_heap(begin(data), end(data), cmp);
-    auto p = data.back();
-    data.pop_back();
-    std::cout << p.first << "\t" << p.second << std::endl;
+  std::unordered_map<std::string, size_t> hist;
+  double timer;
+  { scoped_timer clock(timer);
+    hist = tree.compute_freq(start, stop);
   }
+  std::clog << "compute_freq time: " << timer << "s\n";
+
+  { scoped_timer clock(timer);
+    std::vector<hdata> data;
+    for (auto p : hist)
+      data.push_back(p);
+    std::make_heap(begin(data), end(data), cmp);
+
+    for (size_t i = 0; i < std::min(n, data.size()); i++) {
+      std::pop_heap(begin(data), end(data), cmp);
+      auto p = data.back();
+      data.pop_back();
+      std::cout << p.first << "\t" << p.second << std::endl;
+    }
+  }
+  std::clog << "Extract topmost query time: " << timer << "s\n";
 }
 
 static
 void count(time_tree<std::string>& tree, date begin, date end)
 {
-  std::cout << tree.count(begin, end) << std::endl;
+  double timer;
+  { scoped_timer clock(timer);
+    std::cout << tree.count(begin, end) << std::endl;
+  }
+  std::clog << "count time: " << timer << "s\n";
 }
 
 /*
@@ -215,7 +228,13 @@ int main(int argc, char *argv[])
     usestdin = true;
   }
 
-  auto tree = usestdin ? read_data_from_stdin() : read_data_from_file(argv[pos]);
+  time_tree<std::string> tree;
+
+  double timer;
+  { scoped_timer clock(timer);
+    tree = usestdin ? read_data_from_stdin() : read_data_from_file(argv[pos]);
+  }
+  std::clog << "Loading data / time_tree building: " << timer << "s\n";
 
   if (single) {
     if (!parse_query(tree, argv[2])) {
