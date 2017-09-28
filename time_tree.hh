@@ -12,31 +12,35 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <cstdlib>
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-#define POOL_SIZE 1024
+static const size_t POOL_SIZE = 1 << 20;
 
 template <typename CONTENT>
 struct mem_pool {
   mem_pool() : cur_size(0) {
-    CONTENT* ptr = new CONTENT[POOL_SIZE];
-    pools.push_back(ptr);
+    new_pool();
   }
 
   mem_pool(mem_pool& p) = delete;
 
   ~mem_pool() {
     for (CONTENT* ptr : pools)
-      delete[] ptr;
+      free(ptr);
+  }
+
+  void new_pool() {
+    CONTENT* ptr = (CONTENT*)calloc(POOL_SIZE, sizeof(CONTENT));
+    pools.push_back(ptr);
+    cur_size = 0;
   }
 
   CONTENT* alloc() {
     if (cur_size == POOL_SIZE) {
-      CONTENT* ptr = new CONTENT[POOL_SIZE];
-      pools.push_back(ptr);
-      cur_size = 0;
+      new_pool();
     }
     CONTENT* ptr = pools.back() + cur_size;
     cur_size++;
@@ -63,7 +67,7 @@ template <typename CONTENT>
 struct time_tree {
   struct node {
     size_t rank(date d) {
-      auto cmp = [](const date d1, const date d2) { return d1.value < d2.value; };
+      static auto cmp = [](const date d1, const date d2) { return d1.value < d2.value; };
       auto target = std::lower_bound(begin(keys), end(keys), d, cmp);
       return std::distance(begin(keys), target);
     }
@@ -114,9 +118,9 @@ struct time_tree {
     auto cur = root;
     for (unsigned i = 0; i < 6; i++ ) {
       size_t rk = cur->rank(d);
-      if (rk > 0 && rk >= cur->keys.size() && cur->keys[rk-1].split[i] == d.split[i])
+      if (rk >= cur->keys.size() && cur->keys[rk-1].split[i] == d.split[i])
         rk -= 1;
-      if (rk >= cur->keys.size() || cur->keys[rk].split[i] != d.split[i]) {
+      else if (rk >= cur->keys.size() || cur->keys[rk].split[i] != d.split[i]) {
         auto prev = _upper(d, cur);
         if (prev->prev)
           prev = prev->prev;
